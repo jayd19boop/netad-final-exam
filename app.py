@@ -1,4 +1,5 @@
 import cv2
+import os
 from flask import Flask, Response
 from flask_cors import CORS
 
@@ -33,5 +34,5 @@ def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    # Run the server on port 5000. host='0.0.0.0' allows access from other devices on your local network.
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
