@@ -33,14 +33,23 @@ def upload():
     return jsonify({"status": "received"})
 
 def stream_gen():
+    global current_frame
     while True:
-        if current_frame:
+        # We check if a frame actually exists in the cloud memory
+        if current_frame is not None:
             try:
-                header, encoded = current_frame.split(",", 1)
-                frame_bytes = base64.b64decode(encoded)
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            except: continue
+                # Basic validation of the base64 string
+                if "," in current_frame:
+                    encoded = current_frame.split(",")[1]
+                    frame_bytes = base64.b64decode(encoded)
+                    
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            except Exception as e:
+                print(f"Streaming error: {e}")
+        
+        # This sleep is crucial—without it, Render might kill the 
+        # connection to Nicholas and Carl to save CPU.
         time.sleep(0.1)
 
 @app.route('/video_feed')
