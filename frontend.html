@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCOL - Live Monitor</title>
+    <style>
+        /* CSS Reset & Variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #2563eb;
+            --accent-green: #16a34a;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --border-color: #334155;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-card);
+            padding: 10px 24px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .brand {
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            color: var(--text-muted);
+        }
+
+        .nav-links .active {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* Main Content Layout */
+        .main-content {
+            padding: 24px;
+            flex-grow: 1;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .header-row h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .top-time {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Grid System */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 24px;
+        }
+
+        /* Left Column - Video & Stats */
+        .video-container {
+            position: relative;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            margin-bottom: 16px;
+            /* Placeholder pattern to simulate camera wall */
+            background-image: repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), repeating-linear-gradient(45deg, #111 25%, #222 25%, #222 75%, #111 75%, #111);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+        }
+
+        .video-badge {
+            position: absolute;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .badge-live {
+            top: 16px;
+            left: 16px;
+            background-color: var(--accent-red);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        .badge-rec {
+            top: 16px;
+            right: 16px;
+            background-color: var(--accent-orange);
+        }
+
+        .video-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 16px 16px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .video-title h3 {
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        .video-title p {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+
+        .video-time {
+            text-align: right;
+            font-family: monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Bottom Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr; /* Adjusted to 1fr since one card was removed */
+            gap: 16px;
+        }
+
+        .stat-card {
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-green {
+            background-color: var(--accent-green);
+        }
+
+        .stat-card h4 {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .sub-text {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Right Column - Panels */
+        .panel {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* Alert Items */
+        .alert-item {
+            background-color: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .alert-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .text-red { color: var(--accent-red); }
+        .text-orange { color: var(--accent-orange); }
+
+        .alert-item p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .alert-time {
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        /* Camera Management List */
+        .camera-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+
+        .cam-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cam-info h5 {
+            font-size: 0.85rem;
+        }
+
+        .cam-info span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .cam-status {
+            font-size: 0.65rem;
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-left">
+            <div class="brand">
+                <span>📹</span> DCOL
+            </div>
+            <div class="nav-links">
+                <span class="active">📺 Live Monitor</span>
+                <span>👨‍💻 System Administrator</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <span>⚙️</span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="header-row">
+            <h1>Live Monitor</h1>
+            <div class="top-time" id="global-clock">Loading time...</div>
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <!-- Left Column: Video & Stats -->
+            <div class="left-col">
+                <!-- Main Video Feed -->
+                <!-- Update your Left Column: Video & Stats section to look exactly like this -->
+            <div class="video-container">
+                
+                <!-- THIS IS THE NEW LINE: It pulls the live stream from your Python backend -->
+                <img src="http://localhost:5000/video_feed" alt="Live CCTV Stream" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;">
+
+                <!-- Important: Update z-index for the badges and info so they sit ON TOP of the video -->
+                <div class="video-badge badge-live" style="z-index: 10;">LIVE</div>
+                <div class="video-badge badge-rec" style="z-index: 10;">REC</div>
+                
+                <div class="video-info" style="z-index: 10;">
+                    <div class="video-title">
+                        <h3>CCTV-1</h3>
+                        <p>Main Entrance</p>
+                    </div>
+                    <div class="video-time-container">
+                        <p style="font-size: 0.7rem; color: #cbd5e1; text-align: right;">Current Time</p>
+                        <div class="video-time" id="camera-clock">00:00:00</div>
+                    </div>
+                </div>
+            </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-row">
+                    <div class="stat-card stat-green">
+                        <h4>⏱️ Response Time</h4>
+                        <div class="value">0.4 min</div>
+                        <div class="sub-text">Average response</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Panels -->
+            <div class="right-col">
+                
+                <!-- Alerts Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>⚠️ Alerts & Warnings</span>
+                    </div>
+                    
+                    <div class="alert-item">
+                        <div class="alert-header text-red">
+                            <span>🔴</span> Camera Alert - Camera 1
+                        </div>
+                        <p>Camera may have been moved or view has changed.</p>
+                        <div class="alert-time">2 min ago</div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-header text-orange">
+                            <span>🟠</span> WARNING
+                        </div>
+                        <p>CPU[64-D1] RAM:54.2%</p>
+                        <div class="alert-time">12 min ago</div>
+                    </div>
+
+                    <div class="alert-item">
+                        <div class="alert-header text-orange">
+                            <span>🟠</span> WARNING
+                        </div>
+                        <p>[Third app] 01.PC | da:7f:5c:52r</p>
+                        <div class="alert-time">18 min ago</div>
+                    </div>
+                </div>
+
+                <!-- Camera Management Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>⚙️ Camera Management</span>
+                        <button class="btn-add">+ Add Camera</button>
+                    </div>
+                    <div class="camera-list-item">
+                        <div class="cam-info">
+                            <span>📹</span>
+                            <div>
+                                <h5>CCTV-1</h5>
+                                <span>📍 Main Entrance</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="cam-status">LIVE</span>
+                            <span style="cursor: pointer; color: var(--text-muted);">⋮</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript for Live Clock -->
+    <script>
+        function updateClocks() {
+            const now = new Date();
+            
+            // Format for the top right global clock
+            const globalOptions = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: true
+            };
+            document.getElementById('global-clock').textContent = now.toLocaleDateString('en-US', globalOptions).replace(' at ', ' at ');
+            
+            // Format for the camera feed clock (HH:MM:SS AM/PM)
+            const cameraTime = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' });
+            document.getElementById('camera-clock').textContent = cameraTime;
+        }
+
+        // Run immediately, then update every second
+        updateClocks();
+        setInterval(updateClocks, 1000);
+    </script>
+</body>
+</html>
