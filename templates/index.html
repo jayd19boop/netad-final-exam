@@ -170,7 +170,7 @@
        errorMsg.innerText = 'Authenticating with Secure Server...';
 
        try {
-           const response = await fetch('http://127.0.0.1:5001/api/login', {
+           const response = await fetch('/api/login', {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ username: user, password: pass })
@@ -186,7 +186,7 @@
                document.getElementById('password').value = ''; 
 
                // 🚨 SECURITY UPGRADE: Add the secure token to the video stream!
-               document.getElementById('cctv-stream').src = `http://127.0.0.1:5001/video_feed?token=${data.token}`;
+               document.getElementById('cctv-stream').src = `/video_feed?token=${data.token}`;
                
                fetchSecurityLogs();
                setInterval(fetchSecurityLogs, 3000); 
@@ -213,7 +213,7 @@
             if (document.getElementById('dashboard-container').style.display === 'none') return;
 
             try {
-                const response = await fetch('http://127.0.0.1:5001/api/security_logs');
+                const response = await fetch('/api/security_logs');
                 const logs = await response.json();
                 const container = document.getElementById('security-logs-container');
                 
