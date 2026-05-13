@@ -2,256 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DCOL - Secure Monitor</title>
+    <title>DCOL - Secure Cloud Monitor</title>
     <style>
-        /* CSS Reset & Variables */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        :root {
-            --bg-dark: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
-            --accent-blue: #2563eb; --accent-green: #16a34a; --accent-red: #ef4444; --accent-orange: #f97316;
-            --border-color: #334155;
-        }
-        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
-
-        /* --- LOGIN SCREEN STYLES --- */
-        #login-container {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: var(--bg-dark);
-            display: flex; justify-content: center; align-items: center; z-index: 9999;
-        }
-        .login-box {
-            background-color: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color);
-            width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        .login-brand { font-size: 2rem; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 12px; }
-        .login-box p { color: var(--text-muted); margin-bottom: 24px; font-size: 0.9rem; }
-        .input-group { margin-bottom: 16px; text-align: left; }
-        .input-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
-        .input-group input {
-            width: 100%; padding: 10px 12px; background-color: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-main); font-size: 1rem;
-        }
-        .input-group input:focus { outline: none; border-color: var(--accent-blue); }
-        #login-btn {
-            width: 100%; padding: 12px; background-color: var(--accent-blue); color: white; border: none;
-            border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
-        #login-error { color: var(--accent-red); font-size: 0.8rem; margin-top: 12px; display: none; }
-
-        /* --- DASHBOARD STYLES --- */
-        #dashboard-container { display: none; flex-direction: column; min-height: 100vh; }
-        .navbar { display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-card); padding: 10px 24px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
-        .nav-left { display: flex; align-items: center; gap: 24px; }
-        .brand { font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
-        .nav-links { display: flex; gap: 20px; color: var(--text-muted); }
-        .nav-links .active { color: var(--text-main); font-weight: 600; }
-        .main-content { padding: 24px; flex-grow: 1; }
-        .header-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
-        .header-row h1 { font-size: 1.5rem; font-weight: 600; }
-        .top-time { color: var(--text-muted); font-size: 0.85rem; }
-        .dashboard-grid { display: grid; grid-template-columns: 2.2fr 1fr; gap: 24px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; }
         
-        .video-container { position: relative; background-color: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; margin-bottom: 16px; }
-        .video-badge { position: absolute; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; z-index: 10; }
-        .badge-live { top: 16px; left: 16px; background-color: var(--accent-red); display: flex; align-items: center; gap: 6px; }
-        .badge-live::before { content: ''; width: 8px; height: 8px; background-color: white; border-radius: 50%; animation: blink 1s infinite; }
-        .badge-rec { top: 16px; right: 16px; background-color: var(--accent-orange); }
-        .video-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 24px 16px 16px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); display: flex; justify-content: space-between; align-items: flex-end; z-index: 10;}
-        .video-title h3 { font-size: 1.1rem; margin-bottom: 2px; }
-        .video-title p { font-size: 0.8rem; color: #cbd5e1; }
-        .video-time { text-align: right; font-family: monospace; font-size: 1.2rem; font-weight: bold; }
+        #login-container { position: fixed; inset: 0; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 100; }
+        .login-box { background: #1e293b; padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #334155; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        .panel { background-color: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border-color); }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 0.9rem; font-weight: 600; }
-        
-        /* Security Log Styles */
-        .sec-log-item { background-color: rgba(15, 23, 42, 0.8); border-left: 4px solid var(--border-color); border-radius: 4px; padding: 10px; margin-bottom: 10px; font-size: 0.8rem; }
-        .sec-log-item.threat { border-left-color: var(--accent-red); background-color: rgba(239, 68, 68, 0.1); }
-        .sec-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: bold; color: var(--text-muted);}
-        .sec-threat-title { color: var(--accent-red); }
-        .sec-data { font-family: monospace; color: #cbd5e1; margin-bottom: 4px; word-break: break-all;}
-        .btn-block { background-color: transparent; color: var(--accent-red); border: 1px solid var(--accent-red); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; margin-top: 6px;}
-        .btn-block:hover { background-color: var(--accent-red); color: white; }
-
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        #dashboard-container { display: none; padding: 20px; flex-direction: column; }
+        .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .video-container { position: relative; background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; }
+        .panel { background: #1e293b; border-radius: 12px; padding: 15px; border: 1px solid #334155; }
+        .log-item { background: #0f172a; padding: 10px; margin-bottom: 8px; border-radius: 4px; font-size: 0.8rem; border-left: 4px solid #2563eb; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN OVERLAY -->
     <div id="login-container">
         <div class="login-box">
-            <div class="login-brand"><span>📹</span> DCOL</div>
-            <p>Secure Admin Terminal</p>
-            
-            <div class="input-group">
-                <label for="username">Administrator ID</label>
-                <input type="text" id="username" placeholder="Enter username" autocomplete="off">
-            </div>
-            <div class="input-group">
-                <label for="password">Security Key</label>
-                <input type="password" id="password" placeholder="Enter password">
-            </div>
-            
-            <button id="login-btn" onclick="attemptLogin()">Secure Login</button>
-            <div id="login-error">Connecting to secure server...</div>
+            <h2>📹 DCOL Secure Login</h2>
+            <input type="text" id="username" placeholder="Admin ID">
+            <input type="password" id="password" placeholder="Security Key">
+            <button onclick="attemptLogin()">Access Terminal</button>
+            <p id="error" style="color: #ef4444; margin-top: 10px; font-size: 0.8rem;"></p>
         </div>
     </div>
 
-    <!-- DASHBOARD -->
     <div id="dashboard-container">
-        <nav class="navbar">
-            <div class="nav-left">
-                <div class="brand"><span>📹</span> DCOL</div>
-                <div class="nav-links">
-                    <span class="active">📺 Live Monitor</span>
-                    <span>🛡️ Security Center</span>
-                </div>
+        <h1 style="margin-bottom: 20px;">Surveillance & Security</h1>
+        <div class="dashboard-grid">
+            <div class="video-container">
+                <img id="cctv-stream" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
-            <div class="nav-right">
-                <button onclick="logout()" style="background:none; border:none; color:var(--accent-red); cursor:pointer; font-weight:bold;">Log Out 🚪</button>
+            <div class="panel">
+                <h3>🛡️ Security Logs</h3>
+                <div id="logs" style="margin-top: 15px;"></div>
             </div>
-        </nav>
-
-        <main class="main-content">
-            <div class="header-row">
-                <h1>Surveillance & Security</h1>
-                <div class="top-time" id="global-clock">Loading time...</div>
-            </div>
-
-            <div class="dashboard-grid">
-                <!-- Left Column -->
-                <div class="left-col">
-                    <div class="video-container">
-                        <img id="cctv-stream" alt="Live Stream Offline - Awaiting Auth" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;">
-                        <div class="video-badge badge-live">LIVE</div>
-                        <div class="video-badge badge-rec">REC</div>
-                        <div class="video-info">
-                            <div class="video-title">
-                                <h3>CCTV-1</h3>
-                                <p>Main Entrance</p>
-                            </div>
-                            <div class="video-time-container">
-                                <p style="font-size: 0.7rem; color: #cbd5e1; text-align: right;">Current Time</p>
-                                <div class="video-time" id="camera-clock">00:00:00</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column -->
-                <div class="right-col">
-                    
-                    <!-- NEW: Security Audit Panel -->
-                    <div class="panel">
-                        <div class="panel-header">
-                            <span>🛡️ Security Access Logs</span>
-                            <span style="font-size: 0.7rem; color: var(--accent-red);">Live Monitoring</span>
-                        </div>
-                        <div id="security-logs-container">
-                            <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">No recent activity.</p>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </main>
+        </div>
     </div>
 
     <script>
-        // --- 1. Secure Login Logic (Calls the Python Backend) ---
         async function attemptLogin() {
-       const user = document.getElementById('username').value;
-       const pass = document.getElementById('password').value;
-       const errorMsg = document.getElementById('login-error');
-       
-       errorMsg.style.display = 'block';
-       errorMsg.style.color = 'var(--text-muted)';
-       errorMsg.innerText = 'Authenticating with Secure Server...';
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await response.json();
 
-       try {
-           const response = await fetch('/api/login', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ username: user, password: pass })
-           });
-           
-           const data = await response.json();
-
-           if (data.success) {
-               // SUCCESS! Turn on the dashboard
-               document.getElementById('login-container').style.display = 'none';
-               document.getElementById('dashboard-container').style.display = 'flex';
-               errorMsg.style.display = 'none';
-               document.getElementById('password').value = ''; 
-
-               // 🚨 SECURITY UPGRADE: Add the secure token to the video stream!
-               document.getElementById('cctv-stream').src = `/video_feed?token=${data.token}`;
-               
-               fetchSecurityLogs();
-               setInterval(fetchSecurityLogs, 3000); 
-           } else {
-               errorMsg.style.color = 'var(--accent-red)';
-               errorMsg.innerText = data.message; 
-           }
-       } catch (error) {
-           errorMsg.style.color = 'var(--accent-red)';
-           errorMsg.innerText = 'Error: Cannot connect to security server.';
-       }
-   }
-   
-   function logout() {
-       document.getElementById('dashboard-container').style.display = 'none';
-       document.getElementById('login-container').style.display = 'flex';
-       document.getElementById('username').value = '';
-       // 🚨 SECURITY UPGRADE: Kill the video stream when logging out
-       document.getElementById('cctv-stream').src = "";
-   }
-
-        // --- 2. Live Security Logging Logic ---
-        async function fetchSecurityLogs() {
-            if (document.getElementById('dashboard-container').style.display === 'none') return;
-
-            try {
-                const response = await fetch('/api/security_logs');
-                const logs = await response.json();
-                const container = document.getElementById('security-logs-container');
-                
-                if (logs.length === 0) return;
-
-                container.innerHTML = ''; // Clear current
-                
-                logs.forEach(log => {
-                    const isThreat = log.is_threat;
-                    const logHtml = `
-                        <div class="sec-log-item ${isThreat ? 'threat' : ''}">
-                            <div class="sec-header">
-                                <span class="${isThreat ? 'sec-threat-title' : ''}">${isThreat ? '⚠️ SQLi ATTEMPT' : (log.status === 'Authorized Access' ? '✅ Access Granted' : '❌ Failed Login')}</span>
-                                <span>${log.time}</span>
-                            </div>
-                            <div class="sec-data">IP: ${log.ip}</div>
-                            <div class="sec-data">USR: ${log.username || '[empty]'}</div>
-                            <div class="sec-data">PWD: ${log.password || '[empty]'}</div>
-                            ${log.status !== 'Authorized Access' ? `<button class="btn-block" onclick="alert('IP ${log.ip} blocked in firewall rules.')">Block IP Address</button>` : ''}
-                        </div>
-                    `;
-                    container.innerHTML += logHtml;
-                });
-
-            } catch (error) {
-                console.error("Could not fetch security logs");
+            if (data.success) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('dashboard-container').style.display = 'flex';
+                document.getElementById('cctv-stream').src = "/video_feed";
+                startLogPolling();
+            } else {
+                document.getElementById('error').innerText = data.message;
             }
         }
 
-        // --- 3. Clocks ---
-        function updateClocks() {
-            const now = new Date();
-            const globalOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-            document.getElementById('global-clock').textContent = now.toLocaleDateString('en-US', globalOptions).replace(' at ', ' at ');
-            document.getElementById('camera-clock').textContent = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' });
+        async function startLogPolling() {
+            setInterval(async () => {
+                const res = await fetch('/api/security_logs');
+                const logs = await res.json();
+                const container = document.getElementById('logs');
+                container.innerHTML = logs.map(l => `
+                    <div class="log-item">
+                        <b>${l.status}</b> [${l.time}]<br>IP: ${l.ip} | User: ${l.username}
+                    </div>
+                `).join('');
+            }, 3000);
         }
-        updateClocks();
-        setInterval(updateClocks, 1000);
     </script>
 </body>
 </html>
