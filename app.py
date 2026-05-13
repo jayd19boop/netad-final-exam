@@ -35,22 +35,23 @@ def upload():
 def stream_gen():
     global current_frame
     while True:
-        # We check if a frame actually exists in the cloud memory
+        # Only try to stream if we actually have data
         if current_frame is not None:
             try:
-                # Basic validation of the base64 string
+                # Splitting carefully to avoid data corruption errors
                 if "," in current_frame:
-                    encoded = current_frame.split(",")[1]
+                    _, encoded = current_frame.split(",", 1)
                     frame_bytes = base64.b64decode(encoded)
                     
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            except Exception as e:
-                print(f"Streaming error: {e}")
+            except Exception:
+                # If a frame is "broken" during upload, skip it instead of freezing
+                continue
         
-        # This sleep is crucial—without it, Render might kill the 
-        # connection to Nicholas and Carl to save CPU.
-        time.sleep(0.1)
+        # INCREASE THIS SLEEP. 
+        # 0.2 seconds = 5 FPS. This is much more stable for free servers.
+        time.sleep(0.2)
 
 @app.route('/video_feed')
 def video_feed():
