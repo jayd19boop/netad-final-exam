@@ -1,7 +1,7 @@
 import cv2
 import time
 import secrets
-from flask import Flask, Response, request, jsonify, abort
+from flask import Flask, Response, request, jsonify, abort, render_template
 from flask_cors import CORS
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -34,6 +34,11 @@ LOCKOUT_SECONDS = 30
 # ==========================================
 active_tokens = set()
 security_logs = []
+
+@app.route('/')
+   def home():
+       """Serves the main dashboard HTML interface."""
+       return render_template('index.html')
 
 def generate_frames():
     while True:
