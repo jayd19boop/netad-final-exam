@@ -1,47 +1,5 @@
-async function attemptLogin() {
-       const user = document.getElementById('username').value;
-       const pass = document.getElementById('password').value;
-       const errorMsg = document.getElementById('login-error');
-       
-       errorMsg.style.display = 'block';
-       errorMsg.style.color = 'var(--text-muted)';
-       errorMsg.innerText = 'Authenticating with Secure Server...';
-
-       try {
-           const response = await fetch('http://127.0.0.1:5001/api/login', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ username: user, password: pass })
-           });
-           
-           const data = await response.json();
-
-           if (data.success) {
-               // SUCCESS! Turn on the dashboard
-               document.getElementById('login-container').style.display = 'none';
-               document.getElementById('dashboard-container').style.display = 'flex';
-               errorMsg.style.display = 'none';
-               document.getElementById('password').value = ''; 
-
-               // 🚨 SECURITY UPGRADE: Add the secure token to the video stream!
-               document.getElementById('cctv-stream').src = `http://127.0.0.1:5001/video_feed?token=${data.token}`;
-               
-               fetchSecurityLogs();
-               setInterval(fetchSecurityLogs, 3000); 
-           } else {
-               errorMsg.style.color = 'var(--accent-red)';
-               errorMsg.innerText = data.message; 
-           }
-       } catch (error) {
-           errorMsg.style.color = 'var(--accent-red)';
-           errorMsg.innerText = 'Error: Cannot connect to security server.';
-       }
-   }
-   
-   function logout() {
-       document.getElementById('dashboard-container').style.display = 'none';
-       document.getElementById('login-container').style.display = 'flex';
-       document.getElementById('username').value = '';
-       // 🚨 SECURITY UPGRADE: Kill the video stream when logging out
-       document.getElementById('cctv-stream').src = "";
-   }
+Flask==3.0.0
+Werkzeug==3.0.1
+opencv-python-headless==4.8.1.78
+flask-cors==4.0.0
+gunicorn==21.2.0
