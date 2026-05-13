@@ -121,12 +121,15 @@
             });
             const data = await res.json();
 
-            if (data.success) {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('dashboard-container').style.display = 'grid';
-                document.getElementById('cctv-stream').src = "/video_feed";
-                startLogPolling();
-            } else {
+        if (data.success) {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('dashboard-container').style.display = 'grid';
+    
+            // Use the full URL if relative path /video_feed is failing for them
+            document.getElementById('cctv-stream').src = window.location.origin + "/video_feed";
+    
+            startLogPolling();
+        } else {
                 document.getElementById('error').innerText = "ALERT: " + data.message;
             }
         }
