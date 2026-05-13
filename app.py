@@ -36,9 +36,9 @@ active_tokens = set()
 security_logs = []
 
 @app.route('/')
-   def home():
-       """Serves the main dashboard HTML interface."""
-       return render_template('index.html')
+def home():
+    """Serves the main dashboard HTML interface."""
+    return render_template('index.html')
 
 def generate_frames():
     while True:
