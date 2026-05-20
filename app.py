@@ -45,6 +45,29 @@ def handle_frame(data):
 # ==========================================
 # 🛡️ SECURITY ROUTES (Unchanged)
 # ==========================================
+@app.route('/setup_db_now')
+def force_init():
+    """A secret manual trigger to build the database table."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS security_logs (
+                id SERIAL PRIMARY KEY,
+                time TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                device_info TEXT NOT NULL,
+                username TEXT,
+                status TEXT NOT NULL,
+                is_threat BOOLEAN NOT NULL
+            )
+        ''')
+        conn.commit()
+        cur.close()
+        conn.close()
+        return "<h1 style='color: green;'>✅ SUCCESS: The security_logs table is built and ready!</h1>"
+    except Exception as e:
+        return f"<h1 style='color: red;'>❌ ERROR: {e}</h1>"
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
