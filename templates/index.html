@@ -9,25 +9,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
     <style>
         :root {
-            /* Modern Enterprise Slate Palette */
             --bg-base: #0f172a;
             --bg-surface: rgba(30, 41, 59, 0.7);
             --bg-surface-solid: #1e293b;
             --border-color: rgba(255, 255, 255, 0.1);
-            
-            /* Accents */
             --primary: #6366f1;
             --primary-hover: #4f46e5;
             --success: #10b981;
             --danger: #ef4444;
             --danger-bg: rgba(239, 68, 68, 0.1);
-            --warning: #f59e0b;
-            
-            /* Text */
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            
-            /* Geometry */
             --radius-lg: 16px;
             --radius-md: 12px;
             --radius-sm: 8px;
@@ -39,15 +31,12 @@
         body { 
             background-color: var(--bg-base); 
             color: var(--text-main); 
-            height: 100vh; 
-            overflow: hidden; 
-            /* Subtle background glow effect */
+            min-height: 100vh; 
+            overflow-x: hidden; 
+            overflow-y: auto; 
             background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 50%);
         }
 
-        /* =========================================
-           UX COMPONENT: LOGIN SCREEN 
-           ========================================= */
         #login-container { 
             position: fixed; inset: 0; 
             display: flex; justify-content: center; align-items: center; 
@@ -70,7 +59,6 @@
         }
 
         .login-card h2 { margin-bottom: 2rem; font-weight: 800; letter-spacing: -0.5px; }
-        
         .input-group { margin-bottom: 1.25rem; text-align: left; }
         .input-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
         .input-group input { 
@@ -92,19 +80,24 @@
             display: flex; justify-content: center; align-items: center; gap: 8px;
         }
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn-primary:active { transform: translateY(1px); }
         
-        /* Loading Spinner */
+        .btn-logout { 
+            background: transparent; border: 1px solid var(--danger); 
+            color: var(--danger); padding: 0.5rem 1rem; 
+            border-radius: var(--radius-sm); cursor: pointer; 
+            font-size: 0.8rem; font-weight: 600; transition: var(--transition); 
+            display: flex; align-items: center; gap: 8px; 
+        }
+        .btn-logout:hover { background: var(--danger-bg); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+
         .spinner { border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 2px solid white; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* =========================================
-           UX COMPONENT: DASHBOARD GRID 
-           ========================================= */
         #dashboard-container { 
-            display: none; padding: 1.5rem; height: 100vh; 
+            display: none; padding: 1.5rem; 
+            min-height: 100vh; height: auto; 
             grid-template-columns: 320px 1fr 350px; 
-            grid-template-rows: auto 1fr; gap: 1.5rem; 
+            gap: 1.5rem; 
             opacity: 0; animation: fade-in 0.8s forwards;
         }
 
@@ -136,9 +129,6 @@
             border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;
         }
 
-        /* =========================================
-           UX COMPONENT: VIDEO VIEWPORT 
-           ========================================= */
         .viewport-wrapper { padding: 0.5rem; background: var(--bg-surface-solid); border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; }
         .viewport { 
             position: relative; background: #000; flex-grow: 1; 
@@ -152,16 +142,13 @@
         .cam-overlay-bottom { position: absolute; bottom: 1rem; left: 1rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 12px; border-radius: var(--radius-sm); font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); line-height: 1.5; }
         .cam-overlay-bottom span { color: white; font-family: monospace; }
 
-        /* =========================================
-           UX COMPONENT: LOGS & STATS 
-           ========================================= */
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
         .stat-card { background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); }
         .stat-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; }
         .stat-value { font-size: 1.5rem; font-weight: 800; color: white; font-family: monospace; }
         .stat-value.highlight { color: var(--primary); }
 
-        .log-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.5rem; }
+        .log-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.5rem; max-height: 600px; }
         .log-list::-webkit-scrollbar { width: 4px; }
         .log-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         
@@ -183,7 +170,6 @@
         .log-details { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
         .log-details strong { color: #cbd5e1; }
 
-        /* Animations */
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slide-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -195,22 +181,18 @@
     <div id="login-container">
         <div class="login-card">
             <h2><i class="fas fa-shield-halved" style="color: var(--primary); margin-right: 10px;"></i>SOC Portal</h2>
-            
             <div class="input-group">
                 <label>Operator ID</label>
                 <input type="text" id="username" placeholder="Enter ID" autocomplete="off">
             </div>
-            
             <div class="input-group" style="margin-bottom: 2rem;">
                 <label>Passkey</label>
                 <input type="password" id="password" placeholder="••••••••">
             </div>
-            
             <button class="btn-primary" id="login-btn" onclick="attemptLogin()">
                 <span id="btn-text">Authenticate</span>
                 <div class="spinner" id="login-spinner"></div>
             </button>
-            
             <p id="error" style="color: var(--danger); font-size: 0.8rem; font-weight: 600; margin-top: 1.25rem; height: 16px;"></p>
         </div>
     </div>
@@ -221,12 +203,16 @@
                 <div class="pulse-dot"></div>
                 DCOL // NET-AD.V4
             </div>
-            <div id="real-time-clock" style="font-family: monospace; font-size: 1rem; color: var(--text-muted); font-weight: 600;">00:00:00</div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div id="real-time-clock" style="font-family: monospace; font-size: 1rem; color: var(--text-muted); font-weight: 600;">00:00:00</div>
+                <button class="btn-logout" onclick="location.reload()">
+                    <i class="fas fa-power-off"></i> Disconnect
+                </button>
+            </div>
         </header>
 
         <aside class="panel">
             <div class="panel-header"><i class="fas fa-server"></i> Node Telemetry</div>
-            
             <div style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <div>
                     <div class="stat-label">Connection Protocol</div>
@@ -258,25 +244,22 @@
                     RESOLUTION: <span>400x300</span> | FPS: <span>~20</span><br>
                     TRANSPORT: <span>Socket.IO / Eventlet</span>
                 </div>
-                
                 <img id="cctv-stream">
             </div>
         </main>
 
         <aside class="panel">
             <div class="panel-header"><i class="fas fa-radar"></i> Active Surveillance</div>
-            
             <div class="stat-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Log Entries</div>
-                    <div class="stat-value" style="font-size: 1.2rem;">15</div>
+                    <div class="stat-label">Total Logs</div>
+                    <div id="total-logs" class="stat-value" style="font-size: 1.2rem;">0</div>
                 </div>
                 <div class="stat-card" style="border-color: rgba(239, 68, 68, 0.3);">
                     <div class="stat-label" style="color: var(--danger);">Blocked Threats</div>
                     <div id="threat-counter" class="stat-value" style="color: var(--danger); font-size: 1.2rem;">00</div>
                 </div>
             </div>
-
             <div id="logs" class="log-list">
                 <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
                     <i class="fas fa-circle-notch fa-spin" style="margin-bottom: 8px; font-size: 1.2rem;"></i><br>
@@ -287,7 +270,6 @@
     </div>
 
     <script>
-        // --- UI Utilities ---
         function updateClock() {
             const now = new Date();
             document.getElementById('real-time-clock').innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' });
@@ -295,12 +277,10 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Simulated Ping Variation for Dashboard Realism
         setInterval(() => {
             document.getElementById('ping').innerText = Math.floor(Math.random() * (28 - 14 + 1) + 14);
         }, 2000);
 
-        // Allow pressing "Enter" in the password field to login
         document.getElementById("password").addEventListener("keypress", function(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
@@ -308,7 +288,6 @@
             }
         });
 
-        // --- Core Application Logic ---
         async function attemptLogin() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
@@ -317,7 +296,6 @@
             const errorMsg = document.getElementById('error');
             const loginBtn = document.getElementById('login-btn');
 
-            // UX: Set Loading State
             errorMsg.innerText = "";
             btnText.innerText = "Authenticating...";
             spinner.style.display = "block";
@@ -333,7 +311,6 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // UX: Smooth Transition to Dashboard
                     btnText.innerText = "Access Granted";
                     spinner.style.display = "none";
                     loginBtn.style.background = "var(--success)";
@@ -344,14 +321,11 @@
                         setTimeout(() => {
                             loginContainer.style.display = 'none';
                             document.getElementById('dashboard-container').style.display = 'grid';
-                            
-                            // Initialize WebSockets upon successful UI load
                             initializeStream();
                             startLogPolling();
-                        }, 600); // Wait for fade out
+                        }, 600);
                     }, 500);
                 } else {
-                    // UX: Reset on Failure
                     resetLoginBtn("ALERT: " + data.message);
                 }
             } catch (err) {
@@ -364,7 +338,7 @@
                 spinner.style.display = "none";
                 loginBtn.style.opacity = "1";
                 loginBtn.style.pointerEvents = "auto";
-                document.getElementById('password').value = ''; // Clear password for security
+                document.getElementById('password').value = ''; 
             }
         }
 
@@ -379,22 +353,22 @@
         async function startLogPolling() {
             setInterval(async () => {
                 try {
-                    // Cache buster included
                     const timestamp = new Date().getTime();
                     const res = await fetch(`/api/security_logs?t=${timestamp}`);
                     const logs = await res.json();
                     
                     const container = document.getElementById('logs');
-                    const counter = document.getElementById('threat-counter');
+                    const threatCounter = document.getElementById('threat-counter');
+                    const totalLogsDisplay = document.getElementById('total-logs');
                     let threats = 0;
 
-                    if(logs.length === 0) return; // Keep loading spinner if DB is empty
+                    if(logs.length === 0) return;
 
-                    // Build HTML string efficiently
+                    totalLogsDisplay.innerText = logs.length;
+
                     container.innerHTML = logs.map(l => {
                         if (l.is_threat) threats++;
                         
-                        // Parse device info nicely
                         let deviceStr = "Unknown Device";
                         if (l.device_info) {
                             if(l.device_info.includes("Windows")) deviceStr = "Windows OS";
@@ -421,8 +395,7 @@
                         `;
                     }).join('');
 
-                    // Update UI Counter
-                    counter.innerText = threats.toString().padStart(2, '0');
+                    threatCounter.innerText = threats.toString().padStart(2, '0');
                     
                 } catch (e) {
                     console.error("Failed to fetch logs", e);
