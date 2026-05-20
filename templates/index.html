@@ -145,7 +145,11 @@
 
         async function startLogPolling() {
             setInterval(async () => {
-                const res = await fetch('/api/security_logs');
+                // 🌐 THE CACHE BUSTER FIX
+                // Appending a timestamp forces the browser to pull fresh data from the server
+                const timestamp = new Date().getTime();
+                const res = await fetch(`/api/security_logs?t=${timestamp}`);
+                
                 const logs = await res.json();
                 const container = document.getElementById('logs');
                 const counter = document.getElementById('threat-counter');
