@@ -65,9 +65,16 @@ def login():
         is_threat = False
 
     log_time = datetime.now().strftime("%I:%M:%S %p")
-    ip_address = request.remote_addr
     device_info = request.headers.get('User-Agent', 'Unknown Device')
+    
+    # 🌐 THE REVERSE PROXY FIX: Grab the true IP address
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        ip_address = request.environ.get('REMOTE_ADDR', 'Unknown')
+    else:
+        ip_address = request.environ['HTTP_X_FORWARDED_FOR'].split(',')[0]
 
+    # 🔒 THE CONNECTION LEAK FIX: Ensure connection always closes
+    conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -77,24 +84,30 @@ def login():
         )
         conn.commit()
         cur.close()
-        conn.close()
     except Exception as e:
-        print(f"Error saving log: {e}")
+        print(f"Database Error: {e}")
+    finally:
+        if conn is not None:
+            conn.close() # Always close the connection even if it crashes!
     
     return jsonify({"success": valid_auth, "message": status})
 
 @app.route('/api/security_logs', methods=['GET'])
 def get_logs():
+    conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute('SELECT * FROM security_logs ORDER BY id DESC LIMIT 15')
         logs = cur.fetchall()
         cur.close()
-        conn.close()
         return jsonify(logs)
     except Exception as e:
+        print(f"Log Fetch Error: {e}")
         return jsonify([])
-
+    finally:
+        if conn is not None:
+            conn.close()
+            
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5001)
