@@ -3,177 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DCOL // Advanced SOC Dashboard</title>
+    <title>DCOL // Enterprise SOC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
     <style>
         :root {
-            --bg-dark: #020617;
-            --panel-bg: #0f172a;
-            --accent-blue: #3b82f6;
-            --accent-cyan: #06b6d4;
-            --danger: #ef4444;
+            /* Modern Enterprise Slate Palette */
+            --bg-base: #0f172a;
+            --bg-surface: rgba(30, 41, 59, 0.7);
+            --bg-surface-solid: #1e293b;
+            --border-color: rgba(255, 255, 255, 0.1);
+            
+            /* Accents */
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
             --success: #10b981;
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --warning: #f59e0b;
+            
+            /* Text */
             --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* Geometry */
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; }
-
-        /* AUTH OVERLAY */
-        #login-container { position: fixed; inset: 0; background: var(--bg-dark); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .login-card { background: var(--panel-bg); padding: 2.5rem; border-radius: 1rem; border: 1px solid #1e293b; width: 100%; max-width: 420px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-        input { width: 100%; padding: 0.8rem; margin: 0.5rem 0; background: #020617; border: 1px solid #334155; color: white; border-radius: 0.5rem; }
-        .btn-auth { width: 100%; padding: 1rem; background: var(--accent-blue); color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: bold; margin-top: 1rem; transition: 0.3s; }
-        .btn-auth:hover { background: #2563eb; filter: brightness(1.2); }
-
-        /* DASHBOARD GRID */
-        #dashboard-container { display: none; padding: 1rem; height: 100vh; grid-template-columns: 300px 1fr 350px; grid-template-rows: auto 1fr; gap: 1rem; }
-        header { grid-column: 1 / -1; background: var(--panel-bg); padding: 1rem 1.5rem; border-radius: 0.75rem; border: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
-
-        .panel { background: var(--panel-bg); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.25rem; display: flex; flex-direction: column; }
-        .panel-header { font-size: 0.75rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
-
-        /* CAMERA VIEWPORT */
-        .viewport { position: relative; background: #000; flex-grow: 1; border-radius: 0.5rem; border: 2px solid #1e293b; overflow: hidden; }
-        #cctv-stream { width: 100%; height: 100%; object-fit: cover; }
-        .overlay-rec { position: absolute; top: 15px; left: 15px; color: var(--danger); font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; animation: blink 1s infinite; }
         
-        /* LOGS */
-        .log-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; }
-        .log-entry { font-size: 0.75rem; padding: 0.75rem; background: #020617; border-left: 3px solid var(--accent-blue); border-radius: 4px; }
-        .threat-alert { border-left-color: var(--danger); background: rgba(239, 68, 68, 0.05); animation: shake 0.4s ease-in-out; }
+        body { 
+            background-color: var(--bg-base); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            /* Subtle background glow effect */
+            background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 50%);
+        }
 
-        /* STATS */
-        .stat-box { background: #020617; padding: 1rem; border-radius: 0.5rem; border: 1px solid #1e293b; margin-top: 10px; }
-        .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; font-weight: bold; color: var(--accent-cyan); }
+        /* =========================================
+           UX COMPONENT: LOGIN SCREEN 
+           ========================================= */
+        #login-container { 
+            position: fixed; inset: 0; 
+            display: flex; justify-content: center; align-items: center; 
+            z-index: 1000; 
+            background: var(--bg-base);
+            transition: opacity 0.6s ease;
+        }
 
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .login-card { 
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 3rem; 
+            border-radius: var(--radius-lg); 
+            border: 1px solid var(--border-color); 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .login-card h2 { margin-bottom: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .input-group { margin-bottom: 1.25rem; text-align: left; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .input-group input { 
+            width: 100%; padding: 0.875rem 1rem; 
+            background: rgba(0,0,0,0.2); 
+            border: 1px solid var(--border-color); 
+            color: white; border-radius: var(--radius-sm); 
+            font-size: 1rem; transition: var(--transition);
+        }
+        .input-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+
+        .btn-primary { 
+            width: 100%; padding: 1rem; 
+            background: var(--primary); 
+            color: white; border: none; 
+            border-radius: var(--radius-sm); 
+            cursor: pointer; font-weight: 600; font-size: 1rem; 
+            transition: var(--transition);
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(1px); }
+        
+        /* Loading Spinner */
+        .spinner { border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 2px solid white; width: 16px; height: 16px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* =========================================
+           UX COMPONENT: DASHBOARD GRID 
+           ========================================= */
+        #dashboard-container { 
+            display: none; padding: 1.5rem; height: 100vh; 
+            grid-template-columns: 320px 1fr 350px; 
+            grid-template-rows: auto 1fr; gap: 1.5rem; 
+            opacity: 0; animation: fade-in 0.8s forwards;
+        }
+
+        header { 
+            grid-column: 1 / -1; 
+            background: var(--bg-surface-solid); 
+            padding: 1rem 2rem; 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color); 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: 1px; font-size: 1.2rem; }
+        .pulse-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse-soft 2s infinite; }
+
+        .panel { 
+            background: var(--bg-surface-solid); 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color); 
+            padding: 1.5rem; display: flex; flex-direction: column; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        
+        .panel-header { 
+            font-size: 0.8rem; font-weight: 600; color: var(--text-muted); 
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.25rem; 
+            display: flex; align-items: center; gap: 8px; 
+            border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;
+        }
+
+        /* =========================================
+           UX COMPONENT: VIDEO VIEWPORT 
+           ========================================= */
+        .viewport-wrapper { padding: 0.5rem; background: var(--bg-surface-solid); border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .viewport { 
+            position: relative; background: #000; flex-grow: 1; 
+            border-radius: var(--radius-sm); overflow: hidden; 
+        }
+        #cctv-stream { width: 100%; height: 100%; object-fit: cover; }
+        
+        .cam-overlay-top { position: absolute; top: 1rem; left: 1rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .rec-dot { width: 6px; height: 6px; background: var(--danger); border-radius: 50%; animation: blink 1s infinite; }
+        
+        .cam-overlay-bottom { position: absolute; bottom: 1rem; left: 1rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); padding: 12px; border-radius: var(--radius-sm); font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); line-height: 1.5; }
+        .cam-overlay-bottom span { color: white; font-family: monospace; }
+
+        /* =========================================
+           UX COMPONENT: LOGS & STATS 
+           ========================================= */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; }
+        .stat-value { font-size: 1.5rem; font-weight: 800; color: white; font-family: monospace; }
+        .stat-value.highlight { color: var(--primary); }
+
+        .log-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.5rem; }
+        .log-list::-webkit-scrollbar { width: 4px; }
+        .log-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        
+        .log-entry { 
+            padding: 1rem; background: rgba(0,0,0,0.2); 
+            border-left: 3px solid var(--success); border-radius: var(--radius-sm); 
+            animation: slide-in 0.3s ease-out forwards;
+            border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+        }
+        .threat-alert { 
+            border-left-color: var(--danger); 
+            background: var(--danger-bg); 
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+        
+        .log-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .log-status { font-weight: 700; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .log-time { font-size: 0.7rem; color: var(--text-muted); font-family: monospace; }
+        .log-details { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+        .log-details strong { color: #cbd5e1; }
+
+        /* Animations */
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes pulse-soft { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } }
     </style>
 </head>
 <body>
 
     <div id="login-container">
         <div class="login-card">
-            <h2 style="margin-bottom: 1.5rem;"><i class="fas fa-user-shield"></i> System Access</h2>
-            <input type="text" id="username" placeholder="Operator ID">
-            <input type="password" id="password" placeholder="Passkey">
-            <button class="btn-auth" onclick="attemptLogin()">INITIATE LINK</button>
-            <p id="error" style="color: var(--danger); font-size: 0.75rem; text-align: center; margin-top: 1rem;"></p>
+            <h2><i class="fas fa-shield-halved" style="color: var(--primary); margin-right: 10px;"></i>SOC Portal</h2>
+            
+            <div class="input-group">
+                <label>Operator ID</label>
+                <input type="text" id="username" placeholder="Enter ID" autocomplete="off">
+            </div>
+            
+            <div class="input-group" style="margin-bottom: 2rem;">
+                <label>Passkey</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            
+            <button class="btn-primary" id="login-btn" onclick="attemptLogin()">
+                <span id="btn-text">Authenticate</span>
+                <div class="spinner" id="login-spinner"></div>
+            </button>
+            
+            <p id="error" style="color: var(--danger); font-size: 0.8rem; font-weight: 600; margin-top: 1.25rem; height: 16px;"></p>
         </div>
     </div>
 
     <div id="dashboard-container">
         <header>
-            <div style="display:flex; align-items:center; gap: 1rem;">
-                <i class="fas fa-satellite-dish" style="color:var(--accent-cyan)"></i>
-                <span style="font-weight: 800; letter-spacing: 2px;">DCOL // NET-AD.V4</span>
+            <div class="header-brand">
+                <div class="pulse-dot"></div>
+                DCOL // NET-AD.V4
             </div>
-            <div id="real-time-clock" style="font-family: monospace; font-size: 1.1rem; color: var(--accent-cyan);">00:00:00</div>
+            <div id="real-time-clock" style="font-family: monospace; font-size: 1rem; color: var(--text-muted); font-weight: 600;">00:00:00</div>
         </header>
 
         <aside class="panel">
-            <div class="panel-header"><i class="fas fa-microchip"></i> System Health</div>
-            <div class="stat-box"><div class="stat-label">Network Latency</div><div class="stat-value"><span id="ping">12</span>ms</div></div>
-            <div class="stat-box"><div class="stat-label">Encryption</div><div class="stat-value">AES-256 / WSS</div></div>
-            <div class="stat-box"><div class="stat-label">Server Load</div><div class="stat-value">14%</div></div>
-            <div style="margin-top:auto; font-size: 0.7rem; color: #475569;">Singapore Node: Stable</div>
+            <div class="panel-header"><i class="fas fa-server"></i> Node Telemetry</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div>
+                    <div class="stat-label">Connection Protocol</div>
+                    <div class="stat-value highlight" style="font-size: 1.1rem;">WSS Secure Payload</div>
+                </div>
+                <div>
+                    <div class="stat-label">Network Latency (Singapore)</div>
+                    <div class="stat-value"><span id="ping">12</span><span style="font-size: 0.8rem; color: var(--text-muted);">ms</span></div>
+                </div>
+                <div>
+                    <div class="stat-label">Encryption Standard</div>
+                    <div class="stat-value" style="font-size: 1.1rem;">AES-256-GCM</div>
+                </div>
+                <div style="margin-top: 2rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm);">
+                    <div style="color: var(--success); font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-check-circle"></i> System Optimal
+                    </div>
+                </div>
+            </div>
         </aside>
 
-        <main class="panel" style="padding: 0.5rem;">
+        <main class="viewport-wrapper">
             <div class="viewport">
-                <div class="overlay-rec"><i class="fas fa-circle"></i> LIVE STREAMING</div>
-                <img id="cctv-stream">
-                <div style="position:absolute; bottom:15px; left:15px; font-size: 0.7rem; background:rgba(0,0,0,0.6); padding:8px; border-radius:4px;">
-                    SOURCE: CAM-01 // LOCATION: MAIN_ENTRY<br>RESOLUTION: 400x300 // PROTOCOL: WebSocket
+                <div class="cam-overlay-top">
+                    <div class="rec-dot"></div> LIVE FEED
                 </div>
+                <div class="cam-overlay-bottom">
+                    FEED ID: <span>CAM-01_MAIN_ENTRY</span><br>
+                    RESOLUTION: <span>400x300</span> | FPS: <span>~20</span><br>
+                    TRANSPORT: <span>Socket.IO / Eventlet</span>
+                </div>
+                
+                <img id="cctv-stream">
             </div>
         </main>
 
         <aside class="panel">
-            <div class="panel-header"><i class="fas fa-fingerprint"></i> Threat Analytics</div>
-            <div id="logs" class="log-list">
-                <p style="text-align:center; color:#475569; font-size: 0.8rem; margin-top: 2rem;">Awaiting Data Feed...</p>
+            <div class="panel-header"><i class="fas fa-radar"></i> Active Surveillance</div>
+            
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Log Entries</div>
+                    <div class="stat-value" style="font-size: 1.2rem;">15</div>
+                </div>
+                <div class="stat-card" style="border-color: rgba(239, 68, 68, 0.3);">
+                    <div class="stat-label" style="color: var(--danger);">Blocked Threats</div>
+                    <div id="threat-counter" class="stat-value" style="color: var(--danger); font-size: 1.2rem;">00</div>
+                </div>
             </div>
-            <div class="stat-box" style="border-color: var(--accent-blue); margin-top: 15px;">
-                <div class="stat-label">Blocked Attempts</div>
-                <div id="threat-counter" class="stat-value" style="color:var(--success)">00</div>
+
+            <div id="logs" class="log-list">
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 2rem;">
+                    <i class="fas fa-circle-notch fa-spin" style="margin-bottom: 8px; font-size: 1.2rem;"></i><br>
+                    Awaiting Database Sync...
+                </div>
             </div>
         </aside>
     </div>
 
     <script>
-        // Real-Time Clock
+        // --- UI Utilities ---
         function updateClock() {
             const now = new Date();
-            document.getElementById('real-time-clock').innerText = now.toLocaleTimeString();
+            document.getElementById('real-time-clock').innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' });
         }
         setInterval(updateClock, 1000);
+        updateClock();
 
-        // Simulated Ping Variation for realism
+        // Simulated Ping Variation for Dashboard Realism
         setInterval(() => {
-            document.getElementById('ping').innerText = Math.floor(Math.random() * (28 - 12 + 1) + 12);
+            document.getElementById('ping').innerText = Math.floor(Math.random() * (28 - 14 + 1) + 14);
         }, 2000);
 
+        // Allow pressing "Enter" in the password field to login
+        document.getElementById("password").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                attemptLogin();
+            }
+        });
+
+        // --- Core Application Logic ---
         async function attemptLogin() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await res.json();
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('login-spinner');
+            const errorMsg = document.getElementById('error');
+            const loginBtn = document.getElementById('login-btn');
 
-            if (data.success) {
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('dashboard-container').style.display = 'grid';
-                
-                // ⚡ CONNECT TO WEBSOCKET AFTER LOGIN
-                const socket = io();
-                socket.on('video_stream', function(data) {
-                    document.getElementById('cctv-stream').src = data.image;
+            // UX: Set Loading State
+            errorMsg.innerText = "";
+            btnText.innerText = "Authenticating...";
+            spinner.style.display = "block";
+            loginBtn.style.opacity = "0.8";
+            loginBtn.style.pointerEvents = "none";
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
                 });
-                
-                startLogPolling();
-            } else {
-                document.getElementById('error').innerText = "ALERT: " + data.message;
+                const data = await res.json();
+
+                if (data.success) {
+                    // UX: Smooth Transition to Dashboard
+                    btnText.innerText = "Access Granted";
+                    spinner.style.display = "none";
+                    loginBtn.style.background = "var(--success)";
+                    
+                    setTimeout(() => {
+                        const loginContainer = document.getElementById('login-container');
+                        loginContainer.style.opacity = '0';
+                        setTimeout(() => {
+                            loginContainer.style.display = 'none';
+                            document.getElementById('dashboard-container').style.display = 'grid';
+                            
+                            // Initialize WebSockets upon successful UI load
+                            initializeStream();
+                            startLogPolling();
+                        }, 600); // Wait for fade out
+                    }, 500);
+                } else {
+                    // UX: Reset on Failure
+                    resetLoginBtn("ALERT: " + data.message);
+                }
+            } catch (err) {
+                resetLoginBtn("SERVER UNREACHABLE.");
             }
+
+            function resetLoginBtn(msg) {
+                errorMsg.innerText = msg;
+                btnText.innerText = "Authenticate";
+                spinner.style.display = "none";
+                loginBtn.style.opacity = "1";
+                loginBtn.style.pointerEvents = "auto";
+                document.getElementById('password').value = ''; // Clear password for security
+            }
+        }
+
+        function initializeStream() {
+            const socket = io();
+            const streamImg = document.getElementById('cctv-stream');
+            socket.on('video_stream', function(data) {
+                streamImg.src = data.image;
+            });
         }
 
         async function startLogPolling() {
             setInterval(async () => {
-                // 🌐 THE CACHE BUSTER FIX
-                // Appending a timestamp forces the browser to pull fresh data from the server
-                const timestamp = new Date().getTime();
-                const res = await fetch(`/api/security_logs?t=${timestamp}`);
-                
-                const logs = await res.json();
-                const container = document.getElementById('logs');
-                const counter = document.getElementById('threat-counter');
-                let threats = 0;
-
-                container.innerHTML = logs.map(l => {
-                    if (l.is_threat) threats++;
+                try {
+                    // Cache buster included
+                    const timestamp = new Date().getTime();
+                    const res = await fetch(`/api/security_logs?t=${timestamp}`);
+                    const logs = await res.json();
                     
-                    const shortDevice = l.device_info ? l.device_info.substring(0, 30) + "..." : "Unknown";
+                    const container = document.getElementById('logs');
+                    const counter = document.getElementById('threat-counter');
+                    let threats = 0;
 
-                    return `
-                        <div class="log-entry ${l.is_threat ? 'threat-alert' : ''}">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span style="font-weight:bold; color:${l.is_threat ? 'var(--danger)' : 'var(--accent-cyan)'}">${l.status}</span>
-                                <span style="color:#64748b">${l.time}</span>
+                    if(logs.length === 0) return; // Keep loading spinner if DB is empty
+
+                    // Build HTML string efficiently
+                    container.innerHTML = logs.map(l => {
+                        if (l.is_threat) threats++;
+                        
+                        // Parse device info nicely
+                        let deviceStr = "Unknown Device";
+                        if (l.device_info) {
+                            if(l.device_info.includes("Windows")) deviceStr = "Windows OS";
+                            else if(l.device_info.includes("Mac")) deviceStr = "macOS";
+                            else if(l.device_info.includes("Linux")) deviceStr = "Linux System";
+                            else if(l.device_info.includes("Mobile") || l.device_info.includes("Android") || l.device_info.includes("iPhone")) deviceStr = "Mobile Device";
+                            else deviceStr = l.device_info.substring(0, 20) + "...";
+                        }
+
+                        const statusColor = l.is_threat ? 'var(--danger)' : 'var(--success)';
+
+                        return `
+                            <div class="log-entry ${l.is_threat ? 'threat-alert' : ''}">
+                                <div class="log-header">
+                                    <span class="log-status" style="color: ${statusColor};">${l.status}</span>
+                                    <span class="log-time">${l.time}</span>
+                                </div>
+                                <div class="log-details">
+                                    <span><strong>IP:</strong> ${l.ip}</span>
+                                    <span><strong>User:</strong> ${l.username || 'N/A'}</span>
+                                    <span><strong>Agent:</strong> ${deviceStr}</span>
+                                </div>
                             </div>
-                            <div style="font-size:0.65rem; color:#94a3b8">IP: ${l.ip} | User: ${l.username}</div>
-                            <div style="font-size:0.55rem; color:#475569; margin-top:3px;">Device: ${shortDevice}</div>
-                        </div>
-                    `;
-                }).join('');
+                        `;
+                    }).join('');
 
-                counter.innerText = threats.toString().padStart(2, '0');
-                counter.style.color = threats > 0 ? 'var(--danger)' : 'var(--success)';
+                    // Update UI Counter
+                    counter.innerText = threats.toString().padStart(2, '0');
+                    
+                } catch (e) {
+                    console.error("Failed to fetch logs", e);
+                }
             }, 3000);
         }
     </script>
