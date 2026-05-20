@@ -5,3 +5,5 @@ opencv-python-headless==4.8.1.78
 flask-cors==4.0.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
+Flask-SocketIO==5.3.6
+eventlet==0.33.3
