@@ -7,12 +7,13 @@ import psycopg2.extras
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 CORS(app)
-# Initialize SocketIO
+
+# Initialize SocketIO with Eventlet
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 ADMIN_USERNAME = "admin"
@@ -36,18 +37,13 @@ def home():
 # ==========================================
 @socketio.on('video_frame')
 def handle_frame(data):
-    """
-    Receives a frame from your laptop (transmitter) and instantly 
-    broadcasts it to all connected viewers (the dashboard).
-    """
     emit('video_stream', data, broadcast=True, include_self=False)
 
 # ==========================================
-# 🛡️ SECURITY ROUTES (Unchanged)
+# 🛠️ DATABASE SETUP TRIGGER
 # ==========================================
 @app.route('/setup_db_now')
 def force_init():
-    """A secret manual trigger to build the database table."""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -68,6 +64,10 @@ def force_init():
         return "<h1 style='color: green;'>✅ SUCCESS: The security_logs table is built and ready!</h1>"
     except Exception as e:
         return f"<h1 style='color: red;'>❌ ERROR: {e}</h1>"
+
+# ==========================================
+# 🛡️ SECURITY ROUTES
+# ==========================================
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
@@ -87,16 +87,17 @@ def login():
         status = "AUTHORIZED ACCESS"
         is_threat = False
 
-    log_time = datetime.now().strftime("%I:%M:%S %p")
+    # Force Philippine Standard Time (UTC+8)
+    ph_tz = timezone(timedelta(hours=8))
+    log_time = datetime.now(ph_tz).strftime("%I:%M:%S %p")
     device_info = request.headers.get('User-Agent', 'Unknown Device')
     
-    # 🌐 THE REVERSE PROXY FIX: Grab the true IP address
+    # Grab the true IP address through Render's Proxy
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
         ip_address = request.environ.get('REMOTE_ADDR', 'Unknown')
     else:
         ip_address = request.environ['HTTP_X_FORWARDED_FOR'].split(',')[0]
 
-    # 🔒 THE CONNECTION LEAK FIX: Ensure connection always closes
     conn = None
     try:
         conn = get_db_connection()
@@ -111,7 +112,7 @@ def login():
         print(f"Database Error: {e}")
     finally:
         if conn is not None:
-            conn.close() # Always close the connection even if it crashes!
+            conn.close()
     
     return jsonify({"success": valid_auth, "message": status})
 
@@ -121,7 +122,8 @@ def get_logs():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute('SELECT * FROM security_logs ORDER BY id DESC LIMIT 15')
+        # Removed the LIMIT to show ALL log history
+        cur.execute('SELECT * FROM security_logs ORDER BY id DESC')
         logs = cur.fetchall()
         cur.close()
         return jsonify(logs)
