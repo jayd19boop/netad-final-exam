@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCOL // Advanced SOC Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
     <style>
         :root {
             --bg-dark: #020617;
@@ -76,8 +76,8 @@
 
         <aside class="panel">
             <div class="panel-header"><i class="fas fa-microchip"></i> System Health</div>
-            <div class="stat-box"><div class="stat-label">Network Latency</div><div class="stat-value">24ms</div></div>
-            <div class="stat-box"><div class="stat-label">Encryption</div><div class="stat-value">AES-256</div></div>
+            <div class="stat-box"><div class="stat-label">Network Latency</div><div class="stat-value"><span id="ping">12</span>ms</div></div>
+            <div class="stat-box"><div class="stat-label">Encryption</div><div class="stat-value">AES-256 / WSS</div></div>
             <div class="stat-box"><div class="stat-label">Server Load</div><div class="stat-value">14%</div></div>
             <div style="margin-top:auto; font-size: 0.7rem; color: #475569;">Singapore Node: Stable</div>
         </aside>
@@ -87,7 +87,7 @@
                 <div class="overlay-rec"><i class="fas fa-circle"></i> LIVE STREAMING</div>
                 <img id="cctv-stream">
                 <div style="position:absolute; bottom:15px; left:15px; font-size: 0.7rem; background:rgba(0,0,0,0.6); padding:8px; border-radius:4px;">
-                    SOURCE: CAM-01 // LOCATION: MAIN_ENTRY<br>RESOLUTION: 640x480 // FPS: 10
+                    SOURCE: CAM-01 // LOCATION: MAIN_ENTRY<br>RESOLUTION: 400x300 // PROTOCOL: WebSocket
                 </div>
             </div>
         </main>
@@ -112,6 +112,11 @@
         }
         setInterval(updateClock, 1000);
 
+        // Simulated Ping Variation for realism
+        setInterval(() => {
+            document.getElementById('ping').innerText = Math.floor(Math.random() * (28 - 12 + 1) + 12);
+        }, 2000);
+
         async function attemptLogin() {
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
@@ -122,18 +127,21 @@
             });
             const data = await res.json();
 
-        if (data.success) {
-    document.getElementById('login-container').style.display = 'none';
-    document.getElementById('dashboard-container').style.display = 'grid';
-
-    // ⚡ CONNECT TO WEBSOCKET AFTER LOGIN
-    const socket = io();
-    socket.on('video_stream', function(data) {
-        document.getElementById('cctv-stream').src = data.image;
-    });
-
-    startLogPolling();
-}
+            if (data.success) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('dashboard-container').style.display = 'grid';
+                
+                // ⚡ CONNECT TO WEBSOCKET AFTER LOGIN
+                const socket = io();
+                socket.on('video_stream', function(data) {
+                    document.getElementById('cctv-stream').src = data.image;
+                });
+                
+                startLogPolling();
+            } else {
+                document.getElementById('error').innerText = "ALERT: " + data.message;
+            }
+        }
 
         async function startLogPolling() {
             setInterval(async () => {
@@ -145,6 +153,9 @@
 
                 container.innerHTML = logs.map(l => {
                     if (l.is_threat) threats++;
+                    
+                    const shortDevice = l.device_info ? l.device_info.substring(0, 30) + "..." : "Unknown";
+
                     return `
                         <div class="log-entry ${l.is_threat ? 'threat-alert' : ''}">
                             <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
@@ -152,6 +163,7 @@
                                 <span style="color:#64748b">${l.time}</span>
                             </div>
                             <div style="font-size:0.65rem; color:#94a3b8">IP: ${l.ip} | User: ${l.username}</div>
+                            <div style="font-size:0.55rem; color:#475569; margin-top:3px;">Device: ${shortDevice}</div>
                         </div>
                     `;
                 }).join('');
