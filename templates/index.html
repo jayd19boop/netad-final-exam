@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.min.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCOL // Advanced SOC Dashboard</title>
@@ -122,17 +123,17 @@
             const data = await res.json();
 
         if (data.success) {
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('dashboard-container').style.display = 'grid';
-    
-            // Use the full URL if relative path /video_feed is failing for them
-            document.getElementById('cctv-stream').src = window.location.origin + "/video_feed";
-    
-            startLogPolling();
-        } else {
-                document.getElementById('error').innerText = "ALERT: " + data.message;
-            }
-        }
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('dashboard-container').style.display = 'grid';
+
+    // ⚡ CONNECT TO WEBSOCKET AFTER LOGIN
+    const socket = io();
+    socket.on('video_stream', function(data) {
+        document.getElementById('cctv-stream').src = data.image;
+    });
+
+    startLogPolling();
+}
 
         async function startLogPolling() {
             setInterval(async () => {
