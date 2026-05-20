@@ -4,60 +4,24 @@ import time
 import os
 import psycopg2
 import psycopg2.extras
-from flask import Flask, Response, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 CORS(app)
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# AUTH CONFIG
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = generate_password_hash("network2026")
-current_frame = None
-
-# ==========================================
-# 🗄️ CLOUD DATABASE SETUP (PostgreSQL)
-# ==========================================
-# Grabs the URL from Render, or uses a local fallback if you are testing on your PC
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://localhost/soc_db')
 
 def get_db_connection():
-    """Opens a connection to the PostgreSQL database."""
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
-def init_db():
-    """Creates the tables if they don't exist yet."""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        # PostgreSQL uses SERIAL instead of AUTOINCREMENT
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS security_logs (
-                id SERIAL PRIMARY KEY,
-                time TEXT NOT NULL,
-                ip TEXT NOT NULL,
-                device_info TEXT NOT NULL,
-                username TEXT,
-                status TEXT NOT NULL,
-                is_threat BOOLEAN NOT NULL
-            )
-        ''')
-        conn.commit()
-        cur.close()
-        conn.close()
-        print("✅ PostgreSQL Database Initialized")
-    except Exception as e:
-        print(f"⚠️ Database connection failed (normal if building on Render): {e}")
-
-# Run database initialization
-init_db()
-
-# ==========================================
-# 🛡️ SECURITY & STREAMING LOGIC
-# ==========================================
 def detect_malicious_intent(user, pw):
     malicious = ["'", "--", "OR 1=1", "DROP", "SELECT", "<SCRIPT>"]
     payload = (str(user) + str(pw)).upper()
@@ -67,31 +31,20 @@ def detect_malicious_intent(user, pw):
 def home():
     return render_template('index.html')
 
-@app.route('/api/upload', methods=['POST'])
-def upload():
-    global current_frame
-    data = request.json
-    current_frame = data.get('image')
-    return jsonify({"status": "received"})
+# ==========================================
+# ⚡ WEBSOCKET VIDEO RELAY
+# ==========================================
+@socketio.on('video_frame')
+def handle_frame(data):
+    """
+    Receives a frame from your laptop (transmitter) and instantly 
+    broadcasts it to all connected viewers (the dashboard).
+    """
+    emit('video_stream', data, broadcast=True, include_self=False)
 
-def stream_gen():
-    global current_frame
-    while True:
-        if current_frame is not None:
-            try:
-                if "," in current_frame:
-                    _, encoded = current_frame.split(",", 1)
-                    frame_bytes = base64.b64decode(encoded)
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            except Exception:
-                continue
-        time.sleep(0.2)
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(stream_gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
+# ==========================================
+# 🛡️ SECURITY ROUTES (Unchanged)
+# ==========================================
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
@@ -115,11 +68,9 @@ def login():
     ip_address = request.remote_addr
     device_info = request.headers.get('User-Agent', 'Unknown Device')
 
-    # 💾 SAVE TO POSTGRESQL
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # PostgreSQL uses %s for parameters instead of ?
         cur.execute(
             'INSERT INTO security_logs (time, ip, device_info, username, status, is_threat) VALUES (%s, %s, %s, %s, %s, %s)',
             (log_time, ip_address, device_info, user, status, is_threat)
@@ -134,10 +85,8 @@ def login():
 
 @app.route('/api/security_logs', methods=['GET'])
 def get_logs():
-    """Fetches the 15 most recent logs from PostgreSQL."""
     try:
         conn = get_db_connection()
-        # RealDictCursor formats the SQL output into JSON-friendly dictionaries
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute('SELECT * FROM security_logs ORDER BY id DESC LIMIT 15')
         logs = cur.fetchall()
@@ -145,8 +94,7 @@ def get_logs():
         conn.close()
         return jsonify(logs)
     except Exception as e:
-        print(f"Error fetching logs: {e}")
         return jsonify([])
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    socketio.run(app, host='0.0.0.0', port=5001)
